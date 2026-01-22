@@ -1,0 +1,1 @@
+<?php \ = file_get_contents('resources/lang/ar.json'); json_decode(\); if (json_last_error() !== JSON_ERROR_NONE) { echo json_last_error_msg(); }

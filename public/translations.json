@@ -1,0 +1,21 @@
+{
+    "en": {
+        "هذا الحقل مطلوب": "This field is required",
+        "تم تسجيل الدخول بنجاح": "You have been logged in successfully",
+        "الايميل او كلمة المرور خطأ": "Email or password is incorrect",
+        "تم استقبال الأقسام بنجاح": "Sections received successfully",
+        "تم اضافة المنتج الى عربة التسوق بنجاح": "The product has been added to the shopping cart successfully",
+        "No products found": "No products found",
+        "Categories retrieved successfully": "Categories retrieved successfully",
+        "Retrieved successfully": "Retrieved successfully",
+        "this faild is required ": "this faild is required",
+        "email must be email": "email must be email",
+        "this email is not exists": "this email is not exists",
+        "هذا الحقل مطلوب ": "This field is required",
+        "يجب ان يكون ايميل": "It must be an email",
+        "هذا الايميل ليس مسجل": "This email is not registered"
+    },
+    "ar": {
+        "Categories retrieved successfully": "تم استرداد الفئات بنجاح"
+    }
+}

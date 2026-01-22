@@ -1,0 +1,4 @@
+product_name_ar,product_name_en,description_ar,description_en,type,category_name_ar,category_name_en,brand_name_ar,brand_name_en,price,wholesale_price,retail_price,stock,min_quantity,key_ar,key_en,value_ar,value_en,main_image_url,other_images_urls
+تيشيرت تجريبي,Test T-Shirt,وصف تجريبي,Test Description,retail,ملابس,Fashion,نايكي,Nike,150,,,50,1,اللون,Color,أحمر,Red,https://picsum.photos/200/300,
+تيشيرت تجريبي,Test T-Shirt,وصف تجريبي,Test Description,retail,ملابس,Fashion,نايكي,Nike,150,,,50,1,المقاس,Size,كبير,Large,,https://picsum.photos/200/301
+, , , , , , , , , , , , , ,الخامة,Material,قطن,Cotton,,https://picsum.photos/200/302
