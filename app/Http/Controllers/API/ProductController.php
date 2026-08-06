@@ -18,10 +18,17 @@ class ProductController extends Controller
         $priceColumn = 'price';
 
         $products = Product::with([
-            'variants' => function ($q) use ($priceColumn) {
+            'brand',
+            'variants' => function ($q) use ($priceColumn, $now) {
                 $q->whereNotNull($priceColumn)
                   ->where($priceColumn, '>', 0)
-                  ->with('offers');
+                  ->with([
+                      'variantAttributes',
+                      'offers' => function ($oq) use ($now) {
+                          $oq->where('start', '<=', $now)
+                             ->where('end', '>=', $now);
+                      }
+                  ]);
             }
         ])
             ->whereHas('variants', function ($q) use ($priceColumn) {
@@ -34,12 +41,39 @@ class ProductController extends Controller
         $products->getCollection()->transform(function ($product) use ($locale, $now) {
             $variant = $product->variants->first();
 
-            $firstOffer = optional($variant)
-                ->offers
-                ->first(function ($offer) use ($now) {
+            $attributes = [];
+            $seenValues = [];
+            foreach ($product->variants as $v) {
+                foreach ($v->variantAttributes as $attr) {
+                    $key = $attr->key_en;
+                    $value = $locale === 'ar' ? $attr->value_ar : $attr->value_en;
+
+                    if (!isset($attributes[$key])) {
+                        $attributes[$key] = [];
+                        $seenValues[$key] = [];
+                    }
+
+                    $lowerValue = mb_strtolower($value);
+                    if (!in_array($lowerValue, $seenValues[$key])) {
+                        $attributes[$key][] = $value;
+                        $seenValues[$key][] = $lowerValue;
+                    }
+                }
+            }
+
+            $offers = optional($variant)
+                ?->offers
+                ->filter(function ($offer) use ($now) {
                     $discountPrice = $offer->disscount_price ?? $offer->discount_price ?? 0;
                     return $discountPrice > 0 && $offer->start <= $now && $offer->end >= $now;
-                });
+                })
+                ->map(function ($offer) {
+                    return [
+                        'id' => $offer->id,
+                        'disscount_price' => $offer->disscount_price ?? $offer->discount_price ?? 0,
+                    ];
+                })
+                ->values() ?? [];
 
             return [
                 'id' => $product->id,
@@ -47,12 +81,12 @@ class ProductController extends Controller
                 'description' => $product->desc,
                 'price' => optional($variant)->price,
                 'image_path' => optional($variant)->image_path,
-                'offers' => $firstOffer ? [
-                    [
-                        'id' => $firstOffer->id,
-                        'disscount_price' => $firstOffer->disscount_price ?? $firstOffer->discount_price ?? 0,
-                    ]
-                ] : [],
+                'offers' => $offers,
+                'brand' => $product->brand ? [
+                    'id' => $product->brand->id,
+                    'name' => $product->brand->name
+                ] : (object) [],
+                'attributes' => $attributes,
             ];
         });
 
@@ -147,7 +181,7 @@ class ProductController extends Controller
                 'desc' => $product->desc,
                 'variants' => $variants,
                 'brand' => $product->brand
-                    ? ['name' => $product->brand->name, 'image_path' => $product->brand->image_path]
+                    ? ['id' => $product->brand->id, 'name' => $product->brand->name, 'image_path' => $product->brand->image_path]
                     : new \stdClass(),
                 'reviews' => $product->reviews->map(function ($review) {
                     return [
@@ -167,6 +201,8 @@ class ProductController extends Controller
     {
         $priceMode = app('price_mode');
         $perPage = 10;
+        $now = now();
+        $locale = app()->getLocale();
         $priceColumn = 'price';
 
         $favorites = Favorite::where('user_id', auth()->id())
@@ -176,16 +212,40 @@ class ProductController extends Controller
                 $q->whereNotNull($priceColumn)
                   ->where($priceColumn, '>', 0);
             })
-            ->with(['product.variants' => function ($q) use ($priceColumn) {
-                $q->whereNotNull($priceColumn)
-                  ->where($priceColumn, '>', 0);
-            }])
+            ->with([
+                'product.brand',
+                'product.variants' => function ($q) use ($priceColumn, $now) {
+                    $q->whereNotNull($priceColumn)
+                      ->where($priceColumn, '>', 0)
+                      ->with([
+                          'variantAttributes',
+                          'offers' => function ($oq) use ($now) {
+                              $oq->where('start', '<=', $now)
+                                 ->where('end', '>=', $now);
+                          }
+                      ]);
+                }
+            ])
             ->orderByDesc('id')
             ->paginate($perPage);
 
-        $favorites->getCollection()->transform(function ($favorite) {
+        $favorites->getCollection()->transform(function ($favorite) use ($locale, $now) {
             $product = $favorite->product;
             $variant = $product->variants->first();
+
+            $offers = optional($variant)
+                ?->offers
+                ->filter(function ($offer) use ($now) {
+                    $discountPrice = $offer->disscount_price ?? $offer->discount_price ?? 0;
+                    return $discountPrice > 0 && $offer->start <= $now && $offer->end >= $now;
+                })
+                ->map(function ($offer) {
+                    return [
+                        'id' => $offer->id,
+                        'disscount_price' => $offer->disscount_price ?? $offer->discount_price ?? 0,
+                    ];
+                })
+                ->values() ?? [];
 
             return [
                 'id' => $product->id,
@@ -193,6 +253,11 @@ class ProductController extends Controller
                 'description' => $product->desc,
                 'price' => optional($variant)->price,
                 'image_path' => optional($variant)->image_path,
+                'offers' => $offers,
+                'brand' => $product->brand ? [
+                    'id' => $product->brand->id,
+                    'name' => $product->brand->name
+                ] : (object) [],
             ];
         });
 
@@ -353,20 +418,27 @@ class ProductController extends Controller
                 }
             }
 
+            $offers = optional($variant)
+                ?->offers
+                ->filter(function ($offer) use ($now) {
+                    $discountPrice = $offer->disscount_price ?? $offer->discount_price ?? 0;
+                    return $discountPrice > 0 && $offer->start <= $now && $offer->end >= $now;
+                })
+                ->map(function ($offer) {
+                    return [
+                        'id' => $offer->id,
+                        'disscount_price' => $offer->disscount_price ?? $offer->discount_price ?? 0,
+                    ];
+                })
+                ->values() ?? [];
+
             return [
                 'id' => $product->id,
                 'name' => $product->name,
                 'description' => $product->desc,
                 'price' => optional($variant)->price,
                 'image_path' => optional($variant)->image_path,
-                'offers' => $variant
-                    ? $variant->offers->map(function ($offer) {
-                        return [
-                            'id' => $offer->id,
-                            'disscount_price' => $offer->disscount_price ?? $offer->discount_price ?? 0,
-                        ];
-                    })
-                    : [],
+                'offers' => $offers,
                 'brand' => $product->brand ? [
                     'id' => $product->brand->id,
                     'name' => $locale === 'ar' ? $product->brand->name_ar : $product->brand->name_en
