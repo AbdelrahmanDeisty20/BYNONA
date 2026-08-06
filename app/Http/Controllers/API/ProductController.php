@@ -14,41 +14,31 @@ class ProductController extends Controller
         $priceMode = app('price_mode');  // retail | wholesale
         $locale = app()->getLocale();
         $page = request('page', 1);
-
-        $priceColumn = $priceMode === 'wholesale'
-            ? 'wholesale_price'
-            : 'retail_price';
-
-        $offerColumn = $priceMode === 'wholesale'
-            ? 'discount_wholesale'
-            : 'discount_retail';
-
         $now = now();
+        $priceColumn = 'price';
 
         $products = Product::with([
             'variants' => function ($q) use ($priceColumn) {
-                $q
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0)
-                    ->with('offers');
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0)
+                  ->with('offers');
             }
         ])
             ->whereHas('variants', function ($q) use ($priceColumn) {
-                $q
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0);
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0);
             })
             ->orderByDesc('id')
             ->paginate(10);
 
-        $products->getCollection()->transform(function ($product) use ($locale, $offerColumn, $now) {
+        $products->getCollection()->transform(function ($product) use ($locale, $now) {
             $variant = $product->variants->first();
 
-            // أول عرض صالح
             $firstOffer = optional($variant)
                 ->offers
-                ->first(function ($offer) use ($offerColumn, $now) {
-                    return $offer->{$offerColumn} > 0 && $offer->start <= $now && $offer->end >= $now;
+                ->first(function ($offer) use ($now) {
+                    $discountPrice = $offer->disscount_price ?? $offer->discount_price ?? 0;
+                    return $discountPrice > 0 && $offer->start <= $now && $offer->end >= $now;
                 });
 
             return [
@@ -60,9 +50,9 @@ class ProductController extends Controller
                 'offers' => $firstOffer ? [
                     [
                         'id' => $firstOffer->id,
-                        'disscount_price' => $firstOffer->{$offerColumn},
+                        'disscount_price' => $firstOffer->disscount_price ?? $firstOffer->discount_price ?? 0,
                     ]
-                ] : [],  // 👈 مصفوفة حتى لو مفيش عروض
+                ] : [],
             ];
         });
 
@@ -83,39 +73,32 @@ class ProductController extends Controller
             ]);
         }
 
-        $priceMode = app('price_mode');  // wholesale | retail
+        $priceMode = app('price_mode');
         $locale = app()->getLocale();
         $now = now();
-
-        $priceColumn = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
-        $offerColumn = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
+        $priceColumn = 'price';
 
         $product = Product::with([
-            'variants' => function ($q) use ($priceColumn, $offerColumn, $now) {
-                $q
-                    ->withTrashed()
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0)
-                    ->with([
-                        'variantAttributes',
-                        'offers' => function ($q) use ($offerColumn, $now) {
-                            $q
-                                ->whereNotNull($offerColumn)
-                                ->where($offerColumn, '>', 0)
-                                ->where('start', '<=', $now)
-                                ->where('end', '>=', $now);
-                        }
-                    ]);
+            'variants' => function ($q) use ($priceColumn, $now) {
+                $q->withTrashed()
+                  ->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0)
+                  ->with([
+                      'variantAttributes',
+                      'offers' => function ($oq) use ($now) {
+                          $oq->where('start', '<=', $now)
+                             ->where('end', '>=', $now);
+                      }
+                  ]);
             },
             'reviews.user',
             'brand'
         ])
             ->where('id', $id)
             ->whereHas('variants', function ($q) use ($priceColumn) {
-                $q
-                    ->withTrashed()
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0);
+                $q->withTrashed()
+                  ->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0);
             })
             ->first();
 
@@ -147,7 +130,7 @@ class ProductController extends Controller
                 'offers' => $variant->offers->map(function ($offer) {
                     return [
                         'id' => $offer->id,
-                        'disscount_price' => $offer->disscount_price,
+                        'disscount_price' => $offer->disscount_price ?? $offer->discount_price ?? 0,
                     ];
                 }),
             ];
@@ -172,8 +155,8 @@ class ProductController extends Controller
                         'comment' => $review->comment,
                         'rate' => $review->rate,
                         'created_at' => $review->created_at,
-                        'first_name' => $review->user->first_name,
-                        'last_name' => $review->user->last_name
+                        'first_name' => $review->user->first_name ?? '',
+                        'last_name' => $review->user->last_name ?? ''
                     ];
                 }),
             ]
@@ -184,25 +167,22 @@ class ProductController extends Controller
     {
         $priceMode = app('price_mode');
         $perPage = 10;
-        $priceColumn = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
+        $priceColumn = 'price';
 
         $favorites = Favorite::where('user_id', auth()->id())
             ->where('is_favorite', true)
             ->where('type', $priceMode)
             ->whereHas('product.variants', function ($q) use ($priceColumn) {
-                $q
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0);
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0);
             })
             ->with(['product.variants' => function ($q) use ($priceColumn) {
-                $q
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0);
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0);
             }])
             ->orderByDesc('id')
             ->paginate($perPage);
 
-        // تعديل البيانات للـ JSON
         $favorites->getCollection()->transform(function ($favorite) {
             $product = $favorite->product;
             $variant = $product->variants->first();
@@ -228,17 +208,12 @@ class ProductController extends Controller
         $user = Auth::user();
         $data = $request->validated();
         $priceMode = app('price_mode');
-
-        // تحقق إن المنتج ليه Variant صالح حسب السعر
-        $priceColumn = $priceMode === 'wholesale'
-            ? 'wholesale_price'
-            : 'retail_price';
+        $priceColumn = 'price';
 
         $product = Product::where('id', $data['product_id'])
             ->whereHas('variants', function ($q) use ($priceColumn) {
-                $q
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0);
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0);
             })
             ->first();
 
@@ -249,13 +224,11 @@ class ProductController extends Controller
             ]);
         }
 
-        // نفس المنتج + نفس المستخدم + نفس النوع
         $favorite = Favorite::where('product_id', $product->id)
             ->where('user_id', $user->id)
             ->where('type', $priceMode)
             ->first();
 
-        // موجود ومفعل
         if ($favorite && $favorite->is_favorite) {
             return response()->json([
                 'success' => true,
@@ -263,7 +236,6 @@ class ProductController extends Controller
             ]);
         }
 
-        // موجود بس متلغى
         if ($favorite && !$favorite->is_favorite) {
             $favorite->update(['is_favorite' => true]);
 
@@ -274,7 +246,6 @@ class ProductController extends Controller
             ]);
         }
 
-        // إنشاء جديد
         $favorite = Favorite::create([
             'product_id' => $product->id,
             'user_id' => $user->id,
@@ -293,17 +264,13 @@ class ProductController extends Controller
     {
         $user = Auth::user();
         $data = $request->validated();
-
-        // جلب النوع من الهيدر أو الافتراضي
         $priceMode = $data['price_mode'] ?? app('price_mode');
 
-        // جلب الريكورد لنفس الـ property ونفس النوع
         $favorite = Favorite::where('user_id', $user->id)
             ->where('product_id', $data['product_id'])
             ->where('type', $priceMode)
             ->first();
 
-        // لو الريكورد مش موجود
         if (!$favorite) {
             return response()->json([
                 'success' => true,
@@ -311,7 +278,6 @@ class ProductController extends Controller
             ]);
         }
 
-        // لو موجود بس بالفعل غير مفعل
         if (!$favorite->is_favorite) {
             return response()->json([
                 'success' => true,
@@ -319,7 +285,6 @@ class ProductController extends Controller
             ]);
         }
 
-        // فعّل الإزالة بتغيير is_favorite إلى false
         $favorite->update([
             'is_favorite' => false
         ]);
@@ -327,37 +292,29 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'message' => __('Property removed from favorites successfully.'),
-            'data' => $favorite->makeHidden(['type']),  // نخفي العمود للـ API
+            'data' => $favorite->makeHidden(['type']),
         ]);
     }
 
     public function latsetProduct()
     {
         $page = request('page', 1);
-        $priceMode = app('price_mode') ?? 'wholesale';
         $locale = app()->getLocale();
         $now = now();
-
-        $priceColumn = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
-        $offerColumn = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
-
-        $dateLimit = now()->subDays(2);
+        $dateLimit = now()->subDays(30);
+        $priceColumn = 'price';
 
         $products = Product::with([
-            'variants' => function ($q) use ($priceColumn, $offerColumn, $now) {
-                $q
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0)
-                    ->with([
-                        'offers' => function ($q) use ($offerColumn, $now) {
-                            $q
-                                ->whereNotNull($offerColumn)
-                                ->where($offerColumn, '>', 0)
-                                ->where('start', '<=', $now)
-                                ->where('end', '>=', $now);
-                        },
-                        'variantAttributes'
-                    ]);
+            'variants' => function ($q) use ($priceColumn, $now) {
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0)
+                  ->with([
+                      'offers' => function ($oq) use ($now) {
+                          $oq->where('start', '<=', $now)
+                             ->where('end', '>=', $now);
+                      },
+                      'variantAttributes'
+                  ]);
             },
             'brand',
         ])
@@ -368,17 +325,14 @@ class ProductController extends Controller
             ->orderByDesc('created_at')
             ->paginate(10);
 
-        $products->getCollection()->transform(function ($product) use ($locale, $priceColumn, $offerColumn, $now) {
-            // أول Variant صالح للعروض
-            $variant = $product->variants->first(function ($v) use ($offerColumn, $now) {
-                return $v->offers->filter(function ($offer) use ($offerColumn, $now) {
-                    return $offer->{$offerColumn} > 0 &&
-                        $offer->start <= $now &&
-                        $offer->end >= $now;
+        $products->getCollection()->transform(function ($product) use ($locale, $now, $priceColumn) {
+            $variant = $product->variants->first(function ($v) use ($now) {
+                return $v->offers->filter(function ($offer) use ($now) {
+                    $discountPrice = $offer->disscount_price ?? $offer->discount_price ?? 0;
+                    return $discountPrice > 0 && $offer->start <= $now && $offer->end >= $now;
                 })->isNotEmpty();
             }) ?? $product->variants->first();
 
-            // جمع كل الخصائص من جميع الـ Variants
             $attributes = [];
             $seenValues = [];
             foreach ($product->variants as $v) {
@@ -403,13 +357,13 @@ class ProductController extends Controller
                 'id' => $product->id,
                 'name' => $product->name,
                 'description' => $product->desc,
-                'price' => optional($variant)->{$priceColumn},
+                'price' => optional($variant)->price,
                 'image_path' => optional($variant)->image_path,
                 'offers' => $variant
-                    ? $variant->offers->map(function ($offer) use ($offerColumn) {
+                    ? $variant->offers->map(function ($offer) {
                         return [
                             'id' => $offer->id,
-                            'disscount_price' => $offer->{$offerColumn},
+                            'disscount_price' => $offer->disscount_price ?? $offer->discount_price ?? 0,
                         ];
                     })
                     : [],

@@ -109,10 +109,12 @@ class HomeController extends Controller
     {
         $q = trim($request->input('search'));
         $priceMode = app('price_mode');  // retail | wholesale
-        $locale = app()->getLocale();
         $now = now();
-        $priceColumn = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
-        $offerColumn = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
+        $priceColumn = 'price';
+        $targetOfferCol = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
+        $offerColumn = \Illuminate\Support\Facades\Schema::hasColumn('offers', $targetOfferCol) 
+            ? $targetOfferCol 
+            : (\Illuminate\Support\Facades\Schema::hasColumn('offers', 'discount_price') ? 'discount_price' : 'discount_retail');
         $page = request('page', 1);
 
         if (!$q) {
@@ -387,8 +389,7 @@ class HomeController extends Controller
             ];
         });
 
-        $priceMode = app()->has('price_mode') ? app('price_mode') : 'wholesale';
-        $priceColumn = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
+        $priceColumn = 'price';
 
         $minPrice = \App\Models\Property::where($priceColumn, '>', 0)->min($priceColumn) ?? 0;
         $maxPrice = \App\Models\Property::where($priceColumn, '>', 0)->max($priceColumn) ?? 0;

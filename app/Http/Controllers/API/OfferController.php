@@ -4,15 +4,20 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\{Offer, Product};
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class OfferController extends Controller
 {
     public function index()
     {
         $priceMode = app('price_mode') ?? 'wholesale';
-        $priceColumn = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
-        $offerColumn = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
+        $priceColumn = 'price';
+
+        $targetOfferCol = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
+        $offerColumn = Schema::hasColumn('offers', $targetOfferCol) 
+            ? $targetOfferCol 
+            : (Schema::hasColumn('offers', 'discount_price') ? 'discount_price' : 'discount_retail');
+
         $page = request('page', 1);
         $now = now();
         $locale = app()->getLocale();
@@ -25,24 +30,18 @@ class OfferController extends Controller
                     ->where($priceColumn, '>', 0)
                     ->with(['offers' => function ($oq) use ($offerColumn, $now) {
                         $oq
-                            ->whereNotNull($offerColumn)
-                            ->where($offerColumn, '>', 0)
                             ->where('start', '<=', $now)
                             ->where('end', '>=', $now);
                     }])
-                    ->whereHas('offers', function ($oq) use ($offerColumn, $now) {
+                    ->whereHas('offers', function ($oq) use ($now) {
                         $oq
-                            ->whereNotNull($offerColumn)
-                            ->where($offerColumn, '>', 0)
-                            ->whereDate('start', '<=', $now)
-                            ->whereDate('end', '>=', $now);
+                            ->where('start', '<=', $now)
+                            ->where('end', '>=', $now);
                     });
             }
         ])
-            ->whereHas('variants.offers', function ($oq) use ($offerColumn, $now) {
+            ->whereHas('variants.offers', function ($oq) use ($now) {
                 $oq
-                    ->whereNotNull($offerColumn)
-                    ->where($offerColumn, '>', 0)
                     ->where('start', '<=', $now)
                     ->where('end', '>=', $now);
             })
