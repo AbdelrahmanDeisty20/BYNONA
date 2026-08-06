@@ -5,22 +5,33 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FilterRequest;
 use App\Models\Product;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 class ProductFilterController extends Controller
 {
     protected int $perPage = 20;
 
-    private function getAllCategoryIds($categoryId)
+    private function getAllCategoryIds($categoryId, array &$visited = [])
     {
+        if (in_array($categoryId, $visited)) {
+            return [];
+        }
+        $visited[] = $categoryId;
+
         $categoryIds = [$categoryId];
-        $children = \App\Models\Category::where('parent_id', $categoryId)->pluck('id')->toArray();
+        $children = \App\Models\Category::where('parent_id', $categoryId)
+            ->where('id', '!=', $categoryId)
+            ->pluck('id')
+            ->toArray();
 
         foreach ($children as $childId) {
-            $categoryIds = array_merge($categoryIds, $this->getAllCategoryIds($childId));
+            if (!in_array($childId, $visited)) {
+                $categoryIds = array_merge($categoryIds, $this->getAllCategoryIds($childId, $visited));
+            }
         }
 
-        return $categoryIds;
+        return array_values(array_unique($categoryIds));
     }
 
     public function filter(FilterRequest $request)
@@ -28,36 +39,55 @@ class ProductFilterController extends Controller
         $filters = $request->validated();
 
         $priceMode = app('price_mode') ?? 'wholesale';
-        $priceColumn = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
-        $offerColumn = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
+        
+        // التحقق الديناميكي من وجود حقول السعر والعروض لمنع خطأ Column not found على الهوست المباشر
+        $targetPriceCol = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
+        $priceColumn = Schema::hasColumn('properties', $targetPriceCol) 
+            ? $targetPriceCol 
+            : (Schema::hasColumn('properties', 'price') ? 'price' : $targetPriceCol);
+
+        $targetOfferCol = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
+        $offerColumn = Schema::hasColumn('offers', $targetOfferCol) 
+            ? $targetOfferCol 
+            : (Schema::hasColumn('offers', 'discount_price') ? 'discount_price' : (Schema::hasColumn('offers', 'disscount_price') ? 'disscount_price' : $targetOfferCol));
+
         $locale = app()->getLocale();
         $page = $filters['page'] ?? 1;
         $now = now();
         $perPage = 10;
 
-        // ---- بدون كاش ----
+        // ---- بدون كاش مع Eager Loading آمن ----
         $query = Product::with([
+            'brand',
             'variants' => function ($q) use ($priceColumn, $offerColumn, $now) {
-                $q
-                    ->whereNotNull($priceColumn)
-                    ->where($priceColumn, '>', 0)
-                    ->with(['offers' => function ($q) use ($offerColumn, $now) {
-                        $q
-                            ->whereNotNull($offerColumn)
-                            ->where($offerColumn, '>', 0)
-                            ->where('start', '<=', $now)
-                            ->whereDate('end', '>=', $now);
-                    }]);
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0)
+                  ->with([
+                      'variantAttributes',
+                      'offers' => function ($oq) use ($offerColumn, $now) {
+                          $oq->whereNotNull($offerColumn)
+                             ->where($offerColumn, '>', 0)
+                             ->where('start', '<=', $now)
+                             ->whereDate('end', '>=', $now);
+                      }
+                  ]);
             }
         ])->whereHas('variants', function ($q) use ($priceColumn) {
             $q->whereNotNull($priceColumn)->where($priceColumn, '>', 0);
         });
 
-        // فلترة الأقسام بشكل متداخل (Recursive)
+        // فلترة الأقسام بشكل متداخل وآمن من الـ Infinite Loop
         if (!empty($filters['category_id'])) {
             $allCategoryIds = $this->getAllCategoryIds($filters['category_id']);
-            $query->whereHas('categories', function ($q) use ($allCategoryIds) {
-                $q->whereIn('categories.id', $allCategoryIds);
+            $query->where(function ($q) use ($allCategoryIds) {
+                if (Schema::hasColumn('products', 'category_id')) {
+                    $q->whereIn('category_id', $allCategoryIds);
+                }
+                if (Schema::hasTable('category_product')) {
+                    $q->orWhereHas('categories', function ($sq) use ($allCategoryIds) {
+                        $sq->whereIn('categories.id', $allCategoryIds);
+                    });
+                }
             });
         }
 
@@ -90,9 +120,8 @@ class ProductFilterController extends Controller
                             $keyColumn = $locale === 'ar' ? 'key_ar' : 'key_en';
                             $valueColumn = $locale === 'ar' ? 'value_ar' : 'value_en';
 
-                            $sq
-                                ->where($keyColumn, $group[0][$keyColumn])
-                                ->whereIn($valueColumn, $group->pluck($valueColumn)->toArray());
+                            $sq->where($keyColumn, $group[0][$keyColumn])
+                              ->whereIn($valueColumn, $group->pluck($valueColumn)->toArray());
                         });
                     }
                 }
@@ -107,11 +136,10 @@ class ProductFilterController extends Controller
         switch ($sort) {
             case 'offers':
                 $query->whereHas('variants.offers', function ($q) use ($now, $offerColumn) {
-                    $q
-                        ->whereNotNull($offerColumn)
-                        ->where($offerColumn, '>', 0)
-                        ->where('start', '<=', $now)
-                        ->where('end', '>=', $now);
+                    $q->whereNotNull($offerColumn)
+                      ->where($offerColumn, '>', 0)
+                      ->where('start', '<=', $now)
+                      ->where('end', '>=', $now);
                 })->orderByDesc('created_at')->orderByDesc('id');
                 break;
 
@@ -120,17 +148,15 @@ class ProductFilterController extends Controller
                 break;
 
             case 'low_high':
-                $query
-                    ->withMin(['variants' => $applyVariantFilters], $priceColumn)
-                    ->orderBy('variants_min_' . $priceColumn)
-                    ->orderByDesc('id');
+                $query->withMin(['variants' => $applyVariantFilters], $priceColumn)
+                      ->orderBy('variants_min_' . $priceColumn)
+                      ->orderByDesc('id');
                 break;
 
             case 'high_low':
-                $query
-                    ->withMax(['variants' => $applyVariantFilters], $priceColumn)
-                    ->orderByDesc('variants_max_' . $priceColumn)
-                    ->orderByDesc('id');
+                $query->withMax(['variants' => $applyVariantFilters], $priceColumn)
+                      ->orderByDesc('variants_max_' . $priceColumn)
+                      ->orderByDesc('id');
                 break;
 
             case 'a_z':
@@ -144,8 +170,8 @@ class ProductFilterController extends Controller
                 break;
 
             case 'latest':
-                // جلب المنتجات اللي تم إنشاؤها في آخر 3 أيام فقط
-                $query->where('created_at', '>=', now()->subDays(3));
+                // جلب المنتجات التي تم إنشاؤها مؤخراً
+                $query->where('created_at', '>=', now()->subDays(30));
                 $query->orderByDesc('created_at')->orderByDesc('id');
                 break;
 
@@ -168,13 +194,11 @@ class ProductFilterController extends Controller
         $products->getCollection()->transform(function ($product) use ($locale, $offerColumn, $now, $filters, $priceColumn, $selectedAttrsGrouped, $sort) {
             // 1. تحديد الموديلات المطابقة للفلتر (سعر و خصائص)
             $matchingVariants = $product->variants->filter(function ($v) use ($filters, $priceColumn, $selectedAttrsGrouped, $locale) {
-                // فلتر السعر
                 if (!empty($filters['min_price']) && $v->{$priceColumn} < $filters['min_price'])
                     return false;
                 if (!empty($filters['max_price']) && $v->{$priceColumn} > $filters['max_price'])
                     return false;
 
-                // فلتر الخصائص
                 foreach ($selectedAttrsGrouped as $keyEn => $group) {
                     $values = $group->pluck($locale === 'ar' ? 'value_ar' : 'value_en')->toArray();
                     $hasAttr = $v->variantAttributes->contains(function ($attr) use ($keyEn, $values) {
@@ -233,14 +257,14 @@ class ProductFilterController extends Controller
                 'price' => optional($variant)->price,
                 'image_path' => optional($variant)->image_path,
                 'offers' => optional($variant)
-                    ->offers
+                    ?->offers
                     ->filter(function ($offer) use ($offerColumn, $now) {
                         return $offer->{$offerColumn} > 0 && $offer->start <= $now && $offer->end >= $now;
                     })
-                    ->map(function ($offer) {
+                    ->map(function ($offer) use ($offerColumn) {
                         return [
                             'id' => $offer->id,
-                            'disscount_price' => $offer->disscount_price,
+                            'disscount_price' => $offer->{$offerColumn} ?? $offer->disscount_price,
                         ];
                     })
                     ->values(),
