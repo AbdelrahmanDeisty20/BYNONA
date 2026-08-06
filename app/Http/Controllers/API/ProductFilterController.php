@@ -40,16 +40,14 @@ class ProductFilterController extends Controller
 
         $priceMode = app('price_mode') ?? 'wholesale';
         
-        // التحقق الديناميكي من وجود حقول السعر والعروض لمنع خطأ Column not found على الهوست المباشر
-        $targetPriceCol = $priceMode === 'wholesale' ? 'wholesale_price' : 'retail_price';
-        $priceColumn = Schema::hasColumn('properties', $targetPriceCol) 
-            ? $targetPriceCol 
-            : (Schema::hasColumn('properties', 'price') ? 'price' : $targetPriceCol);
+        // جدول الخصائص properties يحتوي فقط على العمود price
+        $priceColumn = 'price';
 
+        // جدول العروض offers يحتوي على discount_wholesale و discount_retail و discount_price
         $targetOfferCol = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
         $offerColumn = Schema::hasColumn('offers', $targetOfferCol) 
             ? $targetOfferCol 
-            : (Schema::hasColumn('offers', 'discount_price') ? 'discount_price' : (Schema::hasColumn('offers', 'disscount_price') ? 'disscount_price' : $targetOfferCol));
+            : (Schema::hasColumn('offers', 'discount_price') ? 'discount_price' : 'discount_retail');
 
         $locale = app()->getLocale();
         $page = $filters['page'] ?? 1;
@@ -99,7 +97,7 @@ class ProductFilterController extends Controller
         // الترتيب
         $sort = $filters['sort'] ?? 'latest';
 
-        // دالة موحدة لفلترة الموديلات (تستخدم في الترتيب وفي الاستعلام الأساسي)
+        // دالة موحدة لفلترة الموديلات على العمود price الأصلي
         $applyVariantFilters = function ($q) use ($filters, $priceColumn, $locale) {
             $q->whereNotNull($priceColumn)->where($priceColumn, '>', 0);
 
@@ -170,7 +168,6 @@ class ProductFilterController extends Controller
                 break;
 
             case 'latest':
-                // جلب المنتجات التي تم إنشاؤها مؤخراً
                 $query->where('created_at', '>=', now()->subDays(30));
                 $query->orderByDesc('created_at')->orderByDesc('id');
                 break;
@@ -259,12 +256,13 @@ class ProductFilterController extends Controller
                 'offers' => optional($variant)
                     ?->offers
                     ->filter(function ($offer) use ($offerColumn, $now) {
-                        return $offer->{$offerColumn} > 0 && $offer->start <= $now && $offer->end >= $now;
+                        $val = $offer->{$offerColumn} ?? $offer->discount_price ?? 0;
+                        return $val > 0 && $offer->start <= $now && $offer->end >= $now;
                     })
                     ->map(function ($offer) use ($offerColumn) {
                         return [
                             'id' => $offer->id,
-                            'disscount_price' => $offer->{$offerColumn} ?? $offer->disscount_price,
+                            'disscount_price' => $offer->{$offerColumn} ?? $offer->discount_price ?? 0,
                         ];
                     })
                     ->values(),
