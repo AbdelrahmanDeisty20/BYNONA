@@ -23,7 +23,7 @@ class OfferController extends Controller
         $locale = app()->getLocale();
 
         $products = Product::with([
-            'brand:id,name_ar,name_en',
+            'brand',
             'variants' => function ($q) use ($priceColumn, $offerColumn, $now) {
                 $q
                     ->whereNotNull($priceColumn)
@@ -59,8 +59,27 @@ class OfferController extends Controller
             ], 200);
         }
 
-        $products->getCollection()->transform(function ($product) use ($locale) {
-            $variant = $product->variants->first();
+        $products->getCollection()->transform(function ($product) use ($locale, $offerColumn, $now) {
+            $variant = $product->variants->first(function ($v) use ($offerColumn, $now) {
+                return $v->offers->filter(function ($offer) use ($offerColumn, $now) {
+                    $val = $offer->{$offerColumn} ?? $offer->discount_price ?? 0;
+                    return $val > 0 && $offer->start <= $now && $offer->end >= $now;
+                })->isNotEmpty();
+            }) ?? $product->variants->first();
+
+            $offers = optional($variant)
+                ?->offers
+                ->filter(function ($offer) use ($offerColumn, $now) {
+                    $val = $offer->{$offerColumn} ?? $offer->discount_price ?? 0;
+                    return $val > 0 && $offer->start <= $now && $offer->end >= $now;
+                })
+                ->map(function ($offer) use ($offerColumn) {
+                    return [
+                        'id' => $offer->id,
+                        'disscount_price' => $offer->{$offerColumn} ?? $offer->discount_price ?? 0,
+                    ];
+                })
+                ->values() ?? [];
 
             return [
                 'id' => $product->id,
@@ -68,6 +87,11 @@ class OfferController extends Controller
                 'description' => $product->desc,
                 'price' => optional($variant)->price,
                 'image_path' => optional($variant)->image_path,
+                'offers' => $offers,
+                'brand' => $product->brand ? [
+                    'id' => $product->brand->id,
+                    'name' => $product->brand->name
+                ] : (object) [],
             ];
         });
 
