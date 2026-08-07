@@ -478,6 +478,24 @@ class DummyDataSeeder extends Seeder
             if ($catObj && Schema::hasColumn('products', 'category_id')) {
                 $productData['category_id'] = $catObj->id;
             }
+            if (Schema::hasColumn('products', 'retail_price')) {
+                $productData['retail_price'] = $item['retail_price'];
+            }
+            if (Schema::hasColumn('products', 'wholesale_price')) {
+                $productData['wholesale_price'] = $item['wholesale_price'];
+            }
+            if (Schema::hasColumn('products', 'min_quantity')) {
+                $productData['min_quantity'] = 1;
+            }
+            if (Schema::hasColumn('products', 'stock')) {
+                $productData['stock'] = rand(15, 80);
+            }
+            if (Schema::hasColumn('products', 'main_image')) {
+                $productData['main_image'] = $filename;
+            }
+            if (Schema::hasColumn('products', 'images')) {
+                $productData['images'] = [$filename];
+            }
 
             $product = Product::create($productData);
 
@@ -486,15 +504,25 @@ class DummyDataSeeder extends Seeder
             }
 
             // Create Property (Variant)
-            $property = Property::create([
+            $propData = [
                 'product_id' => $product->id,
-                'wholesale_price' => $item['wholesale_price'],
-                'retail_price' => $item['retail_price'],
                 'main_image' => $filename,
                 'images' => [$filename],
                 'min_quantity' => 1,
                 'stock' => rand(15, 80),
-            ]);
+            ];
+
+            if (Schema::hasColumn('properties', 'wholesale_price')) {
+                $propData['wholesale_price'] = $item['wholesale_price'];
+            }
+            if (Schema::hasColumn('properties', 'retail_price')) {
+                $propData['retail_price'] = $item['retail_price'];
+            }
+            if (Schema::hasColumn('properties', 'price')) {
+                $propData['price'] = $item['retail_price'];
+            }
+
+            $property = Property::create($propData);
 
             // Create Attributes
             foreach ($item['attributes'] as $attr) {
