@@ -14,6 +14,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class DummyDataSeeder extends Seeder
@@ -71,7 +72,9 @@ class DummyDataSeeder extends Seeder
         Offer::truncate();
         Attribute::truncate();
         Property::truncate();
-        DB::table('category_product')->truncate();
+        if (Schema::hasTable('category_product')) {
+            DB::table('category_product')->truncate();
+        }
         Product::truncate();
         Brand::truncate();
         Category::truncate();
@@ -473,7 +476,13 @@ class DummyDataSeeder extends Seeder
             ]);
 
             if ($catObj) {
-                $product->categories()->attach($catObj->id);
+                if (Schema::hasColumn('products', 'category_id')) {
+                    $product->category_id = $catObj->id;
+                    $product->save();
+                }
+                if (Schema::hasTable('category_product')) {
+                    $product->categories()->attach($catObj->id);
+                }
             }
 
             // Create Property (Variant)
