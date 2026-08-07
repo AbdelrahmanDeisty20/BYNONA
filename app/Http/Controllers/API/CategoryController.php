@@ -32,8 +32,10 @@ class CategoryController extends Controller
 
         if ($children->isEmpty()) {
             return response()->json([
+                'success' => false,
                 'error' => true,
                 'message' => __('This category does not exist or has no children'),
+                'data' => [],
             ], 404);
         }
 

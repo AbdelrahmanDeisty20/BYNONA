@@ -15,16 +15,10 @@ class HomeController extends Controller
     public function banners()
     {
         $banners = Banner::paginate(10);
-        if ($banners->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => __('there is no benner right now'),
-            ]);
-        }
 
         return response()->json([
             'success' => true,
-            'message' => __('banner recived successfully'),
+            'message' => $banners->isEmpty() ? __('there is no benner right now') : __('banner recived successfully'),
             'data' => $banners,
         ]);
     }
@@ -92,15 +86,11 @@ class HomeController extends Controller
     public function brand()
     {
         $brands = Brand::all();
-        if ($brands->isEmpty()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'no brands right now .',
-            ]);
-        }
+
         return response()->json([
             'status' => true,
-            'message' => 'brands recives successfully .',
+            'success' => true,
+            'message' => $brands->isEmpty() ? 'no brands right now .' : 'brands recives successfully .',
             'data' => $brands,
         ]);
     }
@@ -109,6 +99,7 @@ class HomeController extends Controller
     {
         $q = trim($request->input('search'));
         $priceMode = app('price_mode');  // retail | wholesale
+        $locale = app()->getLocale();
         $now = now();
         $priceColumn = 'price';
         $targetOfferCol = $priceMode === 'wholesale' ? 'discount_wholesale' : 'discount_retail';
@@ -120,8 +111,13 @@ class HomeController extends Controller
         if (!$q) {
             return response()->json([
                 'status' => true,
+                'success' => true,
                 'message' => 'Please enter search text',
-                'data' => (object) []
+                'data' => [
+                    'current_page' => 1,
+                    'data' => [],
+                    'total' => 0,
+                ]
             ], 200);
         }
 

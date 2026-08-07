@@ -49,13 +49,10 @@ class OfferController extends Controller
             ->paginate(20, ['*'], 'page', $page);
 
         if ($products->isEmpty()) {
-            $emptyData = new \stdClass();
-            $emptyData->data = [];
-
             return response()->json([
                 'success' => true,
                 'message' => __('No active offers found'),
-                'data' => $emptyData,
+                'data' => $products,
             ], 200);
         }
 

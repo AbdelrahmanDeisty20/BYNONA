@@ -457,17 +457,12 @@ class ProductController extends Controller
     public function ProuctBanner()
     {
         $banners = ProductBanner::paginate(5);
-        if ($banners->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'no banners right now'
-            ]);
-        }
 
         return response()->json([
             'success' => true,
-            'message' => 'recived product Banner successfully',
-            'banners' => $banners
+            'message' => $banners->isEmpty() ? 'no banners right now' : 'recived product Banner successfully',
+            'data' => $banners,
+            'banners' => $banners,
         ]);
     }
 }
