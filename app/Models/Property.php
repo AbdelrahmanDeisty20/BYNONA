@@ -12,8 +12,7 @@ class Property extends Model
 
     protected $fillable = [
         'product_id',
-        'wholesale_price',
-        'retail_price',
+        'price',
         'main_image',
         'images',
         'min_quantity',
@@ -75,9 +74,11 @@ class Property extends Model
     {
         $mode = app()->has('price_mode') ? app('price_mode') : 'wholesale';
 
-        return $mode === 'wholesale'
-            ? $this->wholesale_price
-            : $this->retail_price;
+        $price = $mode === 'wholesale'
+            ? ($this->wholesale_price ?? $this->attributes['price'] ?? $this->retail_price ?? 0)
+            : ($this->retail_price ?? $this->attributes['price'] ?? $this->wholesale_price ?? 0);
+
+        return $price ?: ($this->attributes['price'] ?? 0);
     }
 
     public function getImagePathAttribute()

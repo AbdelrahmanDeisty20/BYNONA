@@ -478,6 +478,9 @@ class DummyDataSeeder extends Seeder
             if ($catObj && Schema::hasColumn('products', 'category_id')) {
                 $productData['category_id'] = $catObj->id;
             }
+            if (Schema::hasColumn('products', 'price')) {
+                $productData['price'] = $item['retail_price'];
+            }
             if (Schema::hasColumn('products', 'retail_price')) {
                 $productData['retail_price'] = $item['retail_price'];
             }
@@ -512,6 +515,9 @@ class DummyDataSeeder extends Seeder
                 'stock' => rand(15, 80),
             ];
 
+            if (Schema::hasColumn('properties', 'price')) {
+                $propData['price'] = $item['retail_price'];
+            }
             if (Schema::hasColumn('properties', 'wholesale_price')) {
                 $propData['wholesale_price'] = $item['wholesale_price'];
             }
