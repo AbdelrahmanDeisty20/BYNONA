@@ -14,11 +14,11 @@ class HomeController extends Controller
 {
     public function banners()
     {
-        $banners = Banner::paginate(10);
+        $banners = Banner::all();
 
         return response()->json([
             'success' => true,
-            'message' => $banners->isEmpty() ? __('there is no benner right now') : __('banner recived successfully'),
+            'message' => 'banner recived successfully',
             'data' => $banners,
         ]);
     }

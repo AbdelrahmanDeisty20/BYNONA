@@ -456,11 +456,11 @@ class ProductController extends Controller
 
     public function ProuctBanner()
     {
-        $banners = ProductBanner::paginate(5);
+        $banners = ProductBanner::all();
 
         return response()->json([
             'success' => true,
-            'message' => $banners->isEmpty() ? 'no banners right now' : 'recived product Banner successfully',
+            'message' => 'recived product Banner successfully',
             'data' => $banners,
             'banners' => $banners,
         ]);
