@@ -28,7 +28,7 @@ class Banner extends Model
 
     public function getImagePathAttribute()
     {
-        return asset('storage/app/public/banners/'.$this->image);
+        return asset('storage/banners/' . $this->image);
     }
     public function getDescAttribute()
     {

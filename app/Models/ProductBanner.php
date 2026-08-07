@@ -21,7 +21,7 @@ class ProductBanner extends Model
 
     public function getImagePathAttribute()
     {
-        return asset('storage/app/public/advertisements/'.$this->image);
+        return asset('storage/advertisements/' . $this->image);
     }
     public function getTitleAttribute()
     {

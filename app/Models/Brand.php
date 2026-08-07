@@ -31,6 +31,6 @@ class Brand extends Model
     }
     public function getImagePathAttribute()
     {
-        return asset('storage/app/public/brands/'.$this->image);
+        return asset('storage/brands/' . $this->image);
     }
 }
