@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\Route;
  * |
  */
 
-Route::get('/', function () {
+Route::get('/{any?}', function () {
     return view('welcome');
-});
+})->where('any', '^(?!api|admin|storage).*$');
 
 Route::group(['prefix' => 'admin', 'middleware' => 'lang'], function () {
     Route::get('login', [AuthController::class, 'loginForm'])->name('dashboard.login');
