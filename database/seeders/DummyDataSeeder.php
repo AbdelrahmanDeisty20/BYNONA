@@ -537,13 +537,26 @@ class DummyDataSeeder extends Seeder
 
             // Create Offer if discount exists
             if ($item['discount']) {
-                Offer::create([
+                $offerData = [
                     'property_id' => $property->id,
                     'start' => now()->subDay(),
                     'end' => now()->addDays(14),
-                    'discount_retail' => $item['discount'],
-                    'discount_wholesale' => $item['discount'],
-                ]);
+                ];
+
+                if (Schema::hasColumn('offers', 'discount_retail')) {
+                    $offerData['discount_retail'] = $item['discount'];
+                }
+                if (Schema::hasColumn('offers', 'discount_wholesale')) {
+                    $offerData['discount_wholesale'] = $item['discount'];
+                }
+                if (Schema::hasColumn('offers', 'discount_price')) {
+                    $offerData['discount_price'] = $item['discount'];
+                }
+                if (Schema::hasColumn('offers', 'disscount_price')) {
+                    $offerData['disscount_price'] = $item['discount'];
+                }
+
+                Offer::create($offerData);
             }
         }
 
