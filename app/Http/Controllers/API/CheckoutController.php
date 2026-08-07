@@ -56,9 +56,9 @@ class CheckoutController extends Controller
 
         foreach ($cart->items as $item) {
             // السعر الأساسي
-            $originalPrice = $priceMode === 'wholesale'
-                ? $item->wholesale_price
-                : $item->retail_price;
+            $originalPrice = $item->price ?? ($priceMode === 'wholesale'
+                ? ($item->wholesale_price ?? $item->retail_price ?? 0)
+                : ($item->retail_price ?? $item->wholesale_price ?? 0));
 
             // حساب السعر بعد العرض
             $discountedPrice = $originalPrice;

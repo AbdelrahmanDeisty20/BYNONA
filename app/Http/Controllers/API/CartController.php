@@ -75,7 +75,7 @@ class CartController extends Controller
         // تحويل العناصر للشكل المطلوب يدوياً
         $transformedItems = $cart->items->map(function ($item) use ($stocks, $priceMode, $locale) {
             // السعر الأصلي
-            $originalPrice = $priceMode === 'wholesale' ? $item->wholesale_price : $item->retail_price;
+            $originalPrice = $item->price ?? ($priceMode === 'wholesale' ? ($item->wholesale_price ?? $item->retail_price ?? 0) : ($item->retail_price ?? $item->wholesale_price ?? 0));
 
             // حساب سعر العرض
             $unitPriceWithOffer = $originalPrice;
@@ -163,7 +163,7 @@ class CartController extends Controller
             ], 200);
         }
 
-        $unitPrice = $type === 'wholesale' ? $property->wholesale_price : $property->retail_price;
+        $unitPrice = $property->price ?? ($type === 'wholesale' ? ($property->wholesale_price ?? $property->retail_price ?? 0) : ($property->retail_price ?? $property->wholesale_price ?? 0));
 
         $offer = Offer::where('property_id', $property->id)
             ->where('start', '<=', Carbon::now())
@@ -263,9 +263,9 @@ class CartController extends Controller
             }
 
             // السعر من property
-            $unitPrice = $type === 'wholesale'
-                ? $property->wholesale_price
-                : $property->retail_price;
+            $unitPrice = $property->price ?? ($type === 'wholesale'
+                ? ($property->wholesale_price ?? $property->retail_price ?? 0)
+                : ($property->retail_price ?? $property->wholesale_price ?? 0));
 
             // العروض
             $offer = Offer::where('property_id', $property->id)
