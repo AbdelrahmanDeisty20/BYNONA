@@ -466,23 +466,23 @@ class DummyDataSeeder extends Seeder
             $brandObj = $createdBrands[$item['brand']] ?? null;
             $catObj = $createdCategories[$item['category_index']] ?? null;
 
-            $product = Product::create([
+            $productData = [
                 'name_ar' => $item['name_ar'],
                 'name_en' => $item['name_en'],
                 'desc_ar' => $item['desc_ar'],
                 'desc_en' => $item['desc_en'],
                 'brand_id' => $brandObj ? $brandObj->id : null,
                 'type' => 'retail',
-            ]);
+            ];
 
-            if ($catObj) {
-                if (Schema::hasColumn('products', 'category_id')) {
-                    $product->category_id = $catObj->id;
-                    $product->save();
-                }
-                if (Schema::hasTable('category_product')) {
-                    $product->categories()->attach($catObj->id);
-                }
+            if ($catObj && Schema::hasColumn('products', 'category_id')) {
+                $productData['category_id'] = $catObj->id;
+            }
+
+            $product = Product::create($productData);
+
+            if ($catObj && Schema::hasTable('category_product')) {
+                $product->categories()->attach($catObj->id);
             }
 
             // Create Property (Variant)
