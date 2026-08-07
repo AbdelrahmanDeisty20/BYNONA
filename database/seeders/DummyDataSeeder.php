@@ -27,6 +27,7 @@ class DummyDataSeeder extends Seeder
         $storagePaths = [
             storage_path("app/public/{$folder}"),
             public_path("storage/{$folder}"),
+            public_path("storage/app/public/{$folder}"),
         ];
 
         // Also add direct storage/{folder} if folder is 'categories' for compatibility
@@ -121,8 +122,8 @@ class DummyDataSeeder extends Seeder
             ]);
         }
 
-        // 2. SEED PRODUCT BANNERS (ADVERTISEMENTS)
-        $this->command->info("\n--- Seeding Product Ad Banners ---");
+        // 2. SEED PRODUCT BANNERS (ADVERTISEMENTS) - EXACTLY 3 BANNERS
+        $this->command->info("\n--- Seeding Product Ad Banners (3 Items) ---");
         $adBanners = [
             [
                 'url' => 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop',
@@ -139,6 +140,14 @@ class DummyDataSeeder extends Seeder
                 'desc_ar' => 'تابع لياقتك وصحتك بأناقة ورقي',
                 'desc_en' => 'Track your fitness and health with style',
                 'price' => 2899.00,
+            ],
+            [
+                'url' => 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop',
+                'title_ar' => 'آيفون 15 برو ماكس جديد بالتيتانيوم',
+                'title_en' => 'New iPhone 15 Pro Max Titanium',
+                'desc_ar' => 'أقوى هاتف في العالم مع كاميرا احترافية وشريحة A17 Pro الفائقة',
+                'desc_en' => 'Powerful flagship phone with pro camera & A17 Pro chip',
+                'price' => 54999.00,
             ],
         ];
 
