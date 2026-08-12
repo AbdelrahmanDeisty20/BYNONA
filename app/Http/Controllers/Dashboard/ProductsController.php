@@ -69,7 +69,7 @@ class ProductsController extends Controller
             $product = Product::create($data);
 
             if ($request->filled('category_id')) {
-                $product->categories()->sync((array) $request->category_id);
+                $product->update(['category_id' => $request->category_id]);
             }
 
             if ($request->filled('brand_id')) {
@@ -168,7 +168,7 @@ class ProductsController extends Controller
             $product->update($data);
 
             if ($request->filled('category_id')) {
-                $product->categories()->sync((array) $request->category_id);
+                $product->update(['category_id' => $request->category_id]);
             }
 
             if ($request->filled('brand_id')) {

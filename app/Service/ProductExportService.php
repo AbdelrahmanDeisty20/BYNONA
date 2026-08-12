@@ -31,7 +31,7 @@ class ProductExportService
         foreach ($products as $product) {
             foreach ($product->variants as $variant) {
                 // Categories
-                $categories = $product->categories->pluck('name_en')->implode(',');
+                $categories = $product->category->name_en ?? ($product->categories->name_en ?? '');
 
                 // Attributes: Color:Red;Size:XL
                 $attributes = $variant->variantAttributes->map(function ($attr) {

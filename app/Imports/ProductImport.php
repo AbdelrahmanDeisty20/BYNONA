@@ -116,8 +116,8 @@ class ProductImport implements ToCollection, WithHeadingRow
                 ]);
             }
 
-            if ($category && !$product->categories()->where('category_id', $category->id)->exists()) {
-                $product->categories()->attach($category->id);
+            if ($category) {
+                $product->update(['category_id' => $category->id]);
             }
 
             // 4. Create Product Variant (Property)

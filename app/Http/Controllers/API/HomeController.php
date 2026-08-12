@@ -85,7 +85,13 @@ class HomeController extends Controller
 
     public function brand()
     {
-        $brands = Brand::all();
+        $brands = Brand::all()->map(function ($brand) {
+            return [
+                'id' => $brand->id,
+                'name' => $brand->name,
+                'image_path' => $brand->image_path,
+            ];
+        });
 
         return response()->json([
             'status' => true,
@@ -94,6 +100,32 @@ class HomeController extends Controller
             'data' => $brands,
         ]);
     }
+
+    public function brandShow($id)
+    {
+        $brand = Brand::find($id);
+
+        if (!$brand) {
+            return response()->json([
+                'status' => false,
+                'error' => true,
+                'message' => __('Brand not found'),
+                'data' => null,
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'success' => true,
+            'message' => __('Brand retrieved successfully'),
+            'data' => [
+                'id' => $brand->id,
+                'name' => $brand->name,
+                'image_path' => $brand->image_path,
+            ],
+        ]);
+    }
+
 
     public function search(Request $request)
     {

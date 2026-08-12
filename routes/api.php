@@ -31,9 +31,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['lang']], function () {
     Route::post('/social-login/{provider}', [AuthController::class, 'socialGoogle'])->middleware('throttle:20,1');
     Route::post('/social-register/{provider}', [AuthController::class, 'socialGoogle'])->middleware('throttle:20,1');
     Route::get('categories', [CategoryController::class, 'index']);
+    Route::get('category/{id}', [CategoryController::class, 'subCategory']);
     Route::get('categories/{id}', [CategoryController::class, 'subCategory']);
     Route::get('categories/{id}/Tree', [CategoryController::class, 'subTree']);
     Route::get('brands', [HomeController::class, 'brand']);
+    Route::get('brand/{id}', [HomeController::class, 'brandShow']);
+    Route::get('brands/{id}', [HomeController::class, 'brandShow']);
+
     Route::get('banners-product', [ProductController::class, 'ProuctBanner']);
     Route::post('sendEmail', [ForgetPasswordController::class, 'sendEmail']);
     Route::post('sendCode', [ForgetPasswordController::class, 'sendCode']);

@@ -49,7 +49,7 @@ class ProductExport implements FromCollection, WithHeadings, WithMapping
 
     private function formatRow($product, $variant, $attr)
     {
-        $category = $product->categories->first();
+        $category = $product->category ?? $product->categories;
         $brand = $product->brand;
 
         // Determine the relevant price based on product type

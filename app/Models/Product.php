@@ -17,6 +17,7 @@ class Product extends Model
         'desc_ar',
         'desc_en',
         'brand_id',
+        'category_id',
         'type'
     ];
 
@@ -37,9 +38,14 @@ class Product extends Model
         'name_en' => 'string',
     ];
 
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+
     public function categories()
     {
-        return $this->belongsToMany(Category::class, 'category_product');
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     public function getNameAttribute()
