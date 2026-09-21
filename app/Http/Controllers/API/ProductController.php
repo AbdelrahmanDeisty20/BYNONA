@@ -31,6 +31,7 @@ class ProductController extends Controller
                   ]);
             }
         ])
+            ->where('type', $priceMode)
             ->whereHas('variants', function ($q) use ($priceColumn) {
                 $q->whereNotNull($priceColumn)
                   ->where($priceColumn, '>', 0);
