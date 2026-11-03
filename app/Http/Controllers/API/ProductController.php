@@ -364,6 +364,7 @@ class ProductController extends Controller
 
     public function latsetProduct()
     {
+        $priceMode = app('price_mode');
         $page = request('page', 1);
         $locale = app()->getLocale();
         $now = now();
@@ -384,6 +385,7 @@ class ProductController extends Controller
             },
             'brand',
         ])
+            ->where('type', $priceMode)
             ->where('created_at', '>=', $dateLimit)
             ->whereHas('variants', function ($q) use ($priceColumn) {
                 $q->whereNotNull($priceColumn)->where($priceColumn, '>', 0);

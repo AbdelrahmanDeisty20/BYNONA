@@ -70,7 +70,8 @@ class ProductFilterController extends Controller
                       }
                   ]);
             }
-        ])->whereHas('variants', function ($q) use ($priceColumn) {
+        ])->where('type', $priceMode)
+          ->whereHas('variants', function ($q) use ($priceColumn) {
             $q->whereNotNull($priceColumn)->where($priceColumn, '>', 0);
         });
 
@@ -168,7 +169,7 @@ class ProductFilterController extends Controller
                 break;
 
             case 'latest':
-                $query->where('created_at', '>=', now()->subDays(30));
+                $query->where('created_at', '>=', now()->subYears(2));
                 $query->orderByDesc('created_at')->orderByDesc('id');
                 break;
 
