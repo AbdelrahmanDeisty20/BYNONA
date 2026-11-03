@@ -126,10 +126,10 @@
                                             </label>
                                             <select name="category_id_disabled" class="form-control" disabled>
                                                 @foreach ($categories as $category)
-                                                    <option value="{{ $category->id }}" {{ $product->categories->contains($category->id) ? 'selected' : '' }}>{{ $category->name }}</option>
+                                                    <option value="{{ $category->id }}" {{ $product->category_id == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
                                                 @endforeach
                                             </select>
-                                            <input type="hidden" name="category_id" value="{{ $product->categories->first()->id ?? '' }}">
+                                            <input type="hidden" name="category_id" value="{{ $product->category_id ?? '' }}">
                                         </div>
                                         <span class="text-danger error-category_id text-xs"></span>
                                     </div>

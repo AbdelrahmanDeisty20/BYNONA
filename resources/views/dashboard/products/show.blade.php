@@ -173,9 +173,9 @@
                         </div>
                         <h2 class="font-weight-black text-dark mb-3">{{ $product->name }}</h2>
                         <div class="mb-4">
-                            @foreach($product->categories->unique('id') as $cat)
-                                <span class="badge badge-sm bg-gradient-light text-dark me-1">{{ $cat->name }}</span>
-                            @endforeach
+                            @if($product->category ?? $product->categories)
+                                <span class="badge badge-sm bg-gradient-light text-dark me-1">{{ ($product->category ?? $product->categories)->name }}</span>
+                            @endif
                         </div>
                     </div>
                     <div class="col-lg-4 text-lg-end">

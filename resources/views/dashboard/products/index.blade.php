@@ -149,7 +149,7 @@
                                                 </td>
                                                 <td class="align-middle">
                                                     <span class="text-xs font-weight-bold text-secondary">
-                                                        {{ $product->categories->pluck('name')->unique()->implode(', ') ?: '-' }}
+                                                        {{ $product->category->name ?? $product->categories->name ?? '-' }}
                                                     </span>
                                                 </td>
                                                 <td class="align-middle text-center">
