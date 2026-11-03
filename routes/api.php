@@ -55,6 +55,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['lang']], function () {
     Route::get('banners', [HomeController::class, 'banners']);
     Route::group(['middleware' => ['price_mode']], function () {
         Route::get('products', [ProductController::class, 'index']);
+        Route::get('products/category/{id}', [ProductController::class, 'productsByCategory']);
+        Route::get('products/brand/{id}', [ProductController::class, 'productsByBrand']);
         Route::get('latset-product', [ProductController::class, 'latsetProduct']);
         Route::get('product', [ProductController::class, 'show']);
         Route::get('attributes', [HomeController::class, 'attributes']);

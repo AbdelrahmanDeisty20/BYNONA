@@ -98,6 +98,145 @@ class ProductController extends Controller
         ]);
     }
 
+    public function productsByCategory($id)
+    {
+        $priceMode = app('price_mode');
+        $locale = app()->getLocale();
+        $now = now();
+        $priceColumn = 'price';
+
+        $childIds = \App\Models\Category::where('parent_id', $id)
+            ->where('id', '!=', $id)
+            ->pluck('id')
+            ->toArray();
+        $categoryIds = array_values(array_unique(array_merge([(int) $id], $childIds)));
+
+        $products = Product::with([
+            'brand',
+            'variants' => function ($q) use ($priceColumn, $now) {
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0)
+                  ->with([
+                      'variantAttributes',
+                      'offers' => function ($oq) use ($now) {
+                          $oq->where('start', '<=', $now)
+                             ->where('end', '>=', $now);
+                      }
+                  ]);
+            }
+        ])
+            ->where('type', $priceMode)
+            ->whereIn('category_id', $categoryIds)
+            ->whereHas('variants', function ($q) use ($priceColumn) {
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0);
+            })
+            ->orderByDesc('id')
+            ->paginate(10);
+
+        $this->transformProductCollection($products, $locale, $now);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('Products retrieved successfully'),
+            'data' => $products,
+        ]);
+    }
+
+    public function productsByBrand($id)
+    {
+        $priceMode = app('price_mode');
+        $locale = app()->getLocale();
+        $now = now();
+        $priceColumn = 'price';
+
+        $products = Product::with([
+            'brand',
+            'variants' => function ($q) use ($priceColumn, $now) {
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0)
+                  ->with([
+                      'variantAttributes',
+                      'offers' => function ($oq) use ($now) {
+                          $oq->where('start', '<=', $now)
+                             ->where('end', '>=', $now);
+                      }
+                  ]);
+            }
+        ])
+            ->where('type', $priceMode)
+            ->where('brand_id', $id)
+            ->whereHas('variants', function ($q) use ($priceColumn) {
+                $q->whereNotNull($priceColumn)
+                  ->where($priceColumn, '>', 0);
+            })
+            ->orderByDesc('id')
+            ->paginate(10);
+
+        $this->transformProductCollection($products, $locale, $now);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('Products retrieved successfully'),
+            'data' => $products,
+        ]);
+    }
+
+    private function transformProductCollection($products, string $locale, $now): void
+    {
+        $products->getCollection()->transform(function ($product) use ($locale, $now) {
+            $variant = $product->variants->first();
+
+            $attributes = [];
+            $seenValues = [];
+            foreach ($product->variants as $v) {
+                foreach ($v->variantAttributes as $attr) {
+                    $key = $attr->key_en;
+                    $value = $locale === 'ar' ? $attr->value_ar : $attr->value_en;
+
+                    if (!isset($attributes[$key])) {
+                        $attributes[$key] = [];
+                        $seenValues[$key] = [];
+                    }
+
+                    $lowerValue = mb_strtolower($value);
+                    if (!in_array($lowerValue, $seenValues[$key])) {
+                        $attributes[$key][] = $value;
+                        $seenValues[$key][] = $lowerValue;
+                    }
+                }
+            }
+
+            $offers = optional($variant)
+                ?->offers
+                ->filter(function ($offer) use ($now) {
+                    $discountPrice = $offer->disscount_price ?? $offer->discount_price ?? 0;
+                    return $discountPrice > 0 && $offer->start <= $now && $offer->end >= $now;
+                })
+                ->map(function ($offer) {
+                    return [
+                        'id' => $offer->id,
+                        'disscount_price' => $offer->disscount_price ?? $offer->discount_price ?? 0,
+                    ];
+                })
+                ->values() ?? [];
+
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->desc,
+                'price' => optional($variant)->price,
+                'image_path' => optional($variant)->image_path,
+                'offers' => $offers,
+                'brand' => $product->brand ? [
+                    'id' => $product->brand->id,
+                    'name' => $product->brand->name
+                ] : (object) [],
+                'attributes' => $attributes,
+            ];
+        });
+    }
+
     public function show()
     {
         $id = request()->input('product_id');

@@ -169,6 +169,7 @@ class HomeController extends Controller
                     ->where('end', '>=', $now);
             }
         ])
+            ->where('type', $priceMode)
             ->where(function ($query) use ($q) {
                 $query
                     ->where(function ($sq) use ($q) {
