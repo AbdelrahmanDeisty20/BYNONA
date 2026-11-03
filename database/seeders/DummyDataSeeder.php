@@ -637,8 +637,8 @@ class DummyDataSeeder extends Seeder
             if (!empty($item['discount'])) {
                 $offerData = [
                     'property_id' => $property->id,
-                    'start' => now()->subDays(2),
-                    'end' => now()->addDays(20),
+                    'start' => now()->subMonths(6),
+                    'end' => now()->addYears(5),
                 ];
 
                 if (Schema::hasColumn('offers', 'discount_retail')) {

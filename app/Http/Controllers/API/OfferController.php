@@ -40,6 +40,7 @@ class OfferController extends Controller
                     });
             }
         ])
+            ->where('type', $priceMode)
             ->whereHas('variants.offers', function ($oq) use ($now) {
                 $oq
                     ->where('start', '<=', $now)

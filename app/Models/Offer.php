@@ -11,12 +11,13 @@ class Offer extends Model
 
     // الحقول المسموح بالملأ الجماعي
     protected $fillable = [
-        
         'start',
         'end',
         'property_id',
-        "discount_retail",
-        "discount_wholesale"
+        'discount_retail',
+        'discount_wholesale',
+        'discount_price',
+        'disscount_price',
     ];
 
     protected $appends = ['disscount_price'];
@@ -31,15 +32,22 @@ class Offer extends Model
     ];
     public function getDisscountPriceAttribute()
     {
+        if (!empty($this->attributes['disscount_price'])) {
+            return $this->attributes['disscount_price'];
+        }
+        if (!empty($this->attributes['discount_price'])) {
+            return $this->attributes['discount_price'];
+        }
+
         if (!$this->variant || !$this->variant->product) {
-            return 0;
+            return $this->discount_retail ?? $this->discount_wholesale ?? 0;
         }
 
         $type = $this->variant->product->type; // 'wholesale' or 'retail'
 
         return $type === 'wholesale'
-            ? $this->discount_wholesale
-            : $this->discount_retail;
+            ? ($this->discount_wholesale ?? $this->discount_retail ?? 0)
+            : ($this->discount_retail ?? $this->discount_wholesale ?? 0);
     }
 
     /**
