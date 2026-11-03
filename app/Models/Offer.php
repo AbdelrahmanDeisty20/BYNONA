@@ -39,15 +39,20 @@ class Offer extends Model
             return $this->attributes['discount_price'];
         }
 
-        if (!$this->variant || !$this->variant->product) {
+        $type = app()->has('price_mode')
+            ? app('price_mode')
+            : ($this->relationLoaded('variant') && $this->variant && $this->variant->relationLoaded('product') && $this->variant->product
+                ? $this->variant->product->type
+                : null);
+
+        if ($type === 'wholesale') {
+            return $this->discount_wholesale ?? $this->discount_retail ?? 0;
+        }
+        if ($type === 'retail') {
             return $this->discount_retail ?? $this->discount_wholesale ?? 0;
         }
 
-        $type = $this->variant->product->type; // 'wholesale' or 'retail'
-
-        return $type === 'wholesale'
-            ? ($this->discount_wholesale ?? $this->discount_retail ?? 0)
-            : ($this->discount_retail ?? $this->discount_wholesale ?? 0);
+        return $this->discount_retail ?? $this->discount_wholesale ?? 0;
     }
 
     /**
