@@ -367,7 +367,7 @@ class ProductController extends Controller
         $page = request('page', 1);
         $locale = app()->getLocale();
         $now = now();
-        $dateLimit = now()->subYear(2);
+        $dateLimit = now()->subYears(2);
         $priceColumn = 'price';
 
         $products = Product::with([
