@@ -7,11 +7,11 @@
 
         <div class="container-fluid py-4">
             {{-- Action Buttons --}}
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <a href="{{ route('orders.index') }}" class="btn btn-outline-primary mb-0">
                     <i class="material-icons text-sm">arrow_back</i> {{ __('Back to Orders') }}
                 </a>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap">
                     @if($order->status !== 'processing' && $order->status !== 'completed' && $order->status !== 'cancelled')
                         <form method="POST" action="{{ route('orders.processingOrder', $order->id) }}">
                             @csrf @method('PUT')

@@ -129,24 +129,26 @@
                             <h6>{{ __('Top Selling Products') }}</h6>
                         </div>
                         <div class="card-body px-0 pb-2">
-                            <table class="table align-items-center mb-0">
-                                <thead>
-                                <tr>
-                                    <th>{{ __('Product') }}</th>
-                                    <th class="text-center">{{ __('Quantity') }}</th>
-                                    <th class="text-center">{{ __('Revenue') }}</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach($topProducts as $product)
+                            <div class="table-responsive p-0">
+                                <table class="table align-items-center mb-0">
+                                    <thead>
                                     <tr>
-                                        <td>{{ $product->name }}</td>
-                                        <td class="text-center">{{ $product->total_qty }}</td>
-                                        <td class="text-center">{{ number_format($product->revenue,2) }} {{ __('EGP') }}</td>
+                                        <th>{{ __('Product') }}</th>
+                                        <th class="text-center">{{ __('Quantity') }}</th>
+                                        <th class="text-center">{{ __('Revenue') }}</th>
                                     </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                    @foreach($topProducts as $product)
+                                        <tr>
+                                            <td>{{ $product->name }}</td>
+                                            <td class="text-center">{{ $product->total_qty }}</td>
+                                            <td class="text-center">{{ number_format($product->revenue,2) }} {{ __('EGP') }}</td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

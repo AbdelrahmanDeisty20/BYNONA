@@ -47,20 +47,30 @@
         }
 
         /* LTR Overrides (Ensure symmetry with RTL) */
-        body:not(.rtl).g-sidenav-show .main-content {
-            margin-left: 17.125rem !important;
-            margin-right: 0 !important;
+        @media (min-width: 1200px) {
+            body:not(.rtl).g-sidenav-show .main-content {
+                margin-left: 17.125rem !important;
+                margin-right: 0 !important;
+            }
+            body:not(.rtl).g-sidenav-show .sidenav {
+                transform: translateX(0) !important;
+            }
         }
         
         @media (max-width: 1199.98px) {
-            body:not(.rtl) .main-content {
+            body:not(.rtl) .main-content,
+            body:not(.rtl).g-sidenav-show .main-content {
                 margin-left: 0 !important;
+                margin-right: 0 !important;
             }
-            body:not(.rtl) .sidenav {
-                transform: translateX(-17.125rem);
+            body:not(.rtl) .sidenav,
+            body:not(.rtl).g-sidenav-show .sidenav {
+                transform: translateX(-110%) !important;
+                z-index: 1050 !important;
+                margin-left: 0.75rem !important;
             }
             body:not(.rtl).g-sidenav-show.g-sidenav-pinned .sidenav {
-                transform: translateX(0);
+                transform: translateX(0) !important;
             }
         }
 
@@ -93,26 +103,33 @@
             border-right: 0;
             overflow-y: auto !important;
         }
-        .rtl.g-sidenav-show .sidenav {
-            transform: translateX(0);
-        }
-        .rtl.g-sidenav-hidden .sidenav {
-            transform: translateX(17.125rem);
-        }
-        
-        .rtl.g-sidenav-show .main-content {
-            margin-right: 17.125rem !important;
-            margin-left: 0 !important;
+        @media (min-width: 1200px) {
+            .rtl.g-sidenav-show .sidenav {
+                transform: translateX(0) !important;
+            }
+            .rtl.g-sidenav-hidden .sidenav {
+                transform: translateX(110%) !important;
+            }
+            .rtl.g-sidenav-show .main-content {
+                margin-right: 17.125rem !important;
+                margin-left: 0 !important;
+            }
         }
         @media (max-width: 1199.98px) {
-            .rtl .main-content {
+            .rtl .main-content,
+            .rtl.g-sidenav-show .main-content {
                 margin-right: 0 !important;
+                margin-left: 0 !important;
             }
-            .rtl .sidenav {
-                transform: translateX(17.125rem);
+            .rtl .sidenav,
+            .rtl.g-sidenav-show .sidenav {
+                transform: translateX(110%) !important;
+                z-index: 1050 !important;
+                margin-right: 0.75rem !important;
+                margin-left: 0 !important;
             }
             .rtl.g-sidenav-show.g-sidenav-pinned .sidenav {
-                transform: translateX(0);
+                transform: translateX(0) !important;
             }
         }
         
@@ -209,13 +226,60 @@
         .nav-link.active .i {
             color: #FAD52E !important;
         }
+
+        /* Mobile & Tablet Responsive Enhancements */
+        html, body {
+            overflow-x: hidden;
+        }
+
+        #sidenav-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1040;
+            backdrop-filter: blur(2px);
+        }
+
+        @media (max-width: 1199.98px) {
+            body.g-sidenav-pinned #sidenav-backdrop {
+                display: block;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .container-fluid {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+            #navbarBlur {
+                margin-left: 0.5rem !important;
+                margin-right: 0.5rem !important;
+            }
+            .card .d-flex form.d-flex {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .card .d-flex form.d-flex .input-group,
+            .card .d-flex form.d-flex input.form-control {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 1 1 180px;
+                margin-right: 0 !important;
+                margin-left: 0 !important;
+            }
+            .table-responsive {
+                -webkit-overflow-scrolling: touch;
+            }
+        }
     </style>
     @if (app()->getLocale() == 'ar')
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     @endif
 </head>
 <body class="{{ $bodyClass }} {{ app()->getLocale() == 'ar' ? 'rtl' : '' }}">
-
+<div id="sidenav-backdrop"></div>
 {{ $slot }}
 <!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -228,14 +292,10 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- Bootstrap (bundle includes Popper) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
 </script>
 
-<script src="{{ asset('dashboard/assets') }}/js/core/popper.min.js"></script>
-<script src="{{ asset('dashboard/assets') }}/js/core/bootstrap.min.js"></script>
 <script src="{{ asset('dashboard/assets') }}/js/plugins/perfect-scrollbar.min.js"></script>
 <script src="{{ asset('dashboard/assets') }}/js/plugins/smooth-scrollbar.min.js"></script>
 @stack('js')
@@ -251,6 +311,20 @@
         Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
     }
 
+    document.addEventListener('DOMContentLoaded', function () {
+        var backdrop = document.getElementById('sidenav-backdrop');
+        var closeBtn = document.getElementById('iconSidenav');
+        if (backdrop) {
+            backdrop.addEventListener('click', function () {
+                document.body.classList.remove('g-sidenav-pinned');
+            });
+        }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                document.body.classList.remove('g-sidenav-pinned');
+            });
+        }
+    });
 </script>
 <!-- Github buttons -->
 <script async defer src="https://buttons.github.io/buttons.js"></script>

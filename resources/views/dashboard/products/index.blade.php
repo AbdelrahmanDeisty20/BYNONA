@@ -19,8 +19,8 @@
 
                         <div class="d-flex justify-content-between align-items-center mb-4 px-3 flex-wrap gap-2">
                             {{-- Search Form --}}
-                            <form method="GET" action="{{ route('products.index') }}" class="d-flex mb-0 align-items-center">
-                                <div class="input-group input-group-sm input-group-outline me-2 {{ request('q') ? 'is-filled' : '' }}" style="width: 300px;">
+                            <form method="GET" action="{{ route('products.index') }}" class="d-flex mb-0 align-items-center flex-wrap gap-2">
+                                <div class="input-group input-group-sm input-group-outline me-2 {{ request('q') ? 'is-filled' : '' }}" style="width: 300px; max-width: 100%;">
                                     <input type="text" name="q" value="{{ request('q') }}" class="form-control" placeholder="{{ __('Search products, brands, or categories...') }}">
                                 </div>
                                 <button type="submit" class="btn btn-sm bg-gradient-primary mb-0 shadow-sm px-4">{{ __('Search') }}</button>
@@ -30,7 +30,7 @@
                                     </a>
                                 @endif
                             </form>
-                            <div class="d-flex gap-2 align-items-center">
+                            <div class="d-flex gap-2 align-items-center flex-wrap">
                                 {{-- Import Excel Button --}}
                                 <button type="button" class="btn bg-gradient-info mb-0 shadow-sm d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#importModal">
                                     <i class="material-icons text-sm me-1">upload_file</i> {{ __('Import Products') }}
